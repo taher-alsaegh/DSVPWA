@@ -37,7 +37,7 @@ jobs:
         run: isort --check-only .
 
       - name: Run black check
-        run: black --check .
+        run: black --check . 
 
   build-and-push:
     runs-on: ubuntu-latest
