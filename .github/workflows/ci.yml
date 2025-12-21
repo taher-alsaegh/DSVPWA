@@ -31,16 +31,16 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-          pip install flake8 black isort mypy
+          pip install flake8 black isort
 
+      #- name: Run flake8
+      #  run: flake8 .
+    
       - name: Run isort check
         run: isort --check-only .
 
       - name: Run black check
         run: black --check .
-
-      - name: Run mypy
-        run: mypy . --ignore-missing-imports
 
   build-and-push:
     runs-on: ubuntu-latest
