@@ -30,23 +30,16 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-          pip install flake8 black isort
-
-      # - name: Run flake8
-      #   run: flake8 .
+          pip install black isort
+      
+    # - name: Run flake8
+    #   run: flake8 .
 
       - name: Run isort check
         run: isort --check-only .
 
       - name: Run black check
         run: black --check .
-      
-      - name: Who am I
-        run: |
-          echo "actor=${{ github.actor }}"
-          echo "repo=${{ github.repository }}"
-          echo "ref=${{ github.ref }}"
-
 
   build-and-push:
     runs-on: ubuntu-latest
@@ -56,10 +49,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-#      - name: Set image name (lowercase)
-#        id: img
-#        run: |
-#          echo "image=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - name: Compute image name (lowercase)
+        id: img
+        shell: bash
+        run: |
+          echo "image=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Debug image
+        run: |
+          echo "actor=${{ github.actor }}"
+          echo "repo=${{ github.repository }}"
+          echo "ref=${{ github.ref }}"
+          echo "image=${{ steps.img.outputs.image }}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -78,7 +79,10 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ steps.img.outputs.image }}
+            ${{ steps.img.outputs.image }}:dev
             ${{ steps.img.outputs.image }}:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
+      
