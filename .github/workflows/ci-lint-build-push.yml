@@ -49,11 +49,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Compute image name (lowercase)
-        id: img
-        shell: bash
-        run: |
-          echo "image=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+#      - name: Compute image name (lowercase)
+#        id: img
+#        shell: bash
+#        run: |
+#          echo "image=${{ env.REGISTRY }/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - name: Debug image
         run: |
