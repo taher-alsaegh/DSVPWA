@@ -55,35 +55,6 @@ jobs:
         run: |
           echo "image=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
-      - name: Docker meta (tags + labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.img.outputs.image }}
-          tags: |
-            # dev branch: dev + dev-<shortsha> + sha-<shortsha>
-            type=raw,value=dev,enable={{is_branch}}
-            type=sha,format=short,prefix=dev-,enable={{is_branch}}
-            type=sha,format=short,prefix=sha-
-
-            # release tags: v1.2.3 -> 1.2.3, 1.2, 1, latest
-            type=semver,pattern={{version}},value=${{ github.ref_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ github.ref_name }}
-            type=semver,pattern={{major}},value=${{ github.ref_name }}
-            type=raw,value=latest,enable={{is_tag}}
-
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ github.ref_name }}
-
-      - name: Debug tags
-        run: |
-          echo "image=${{ steps.img.outputs.image }}"
-          echo "ref=${{ github.ref }}"
-          echo "tags:"
-          echo "${{ steps.meta.outputs.tags }}"
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -94,13 +65,60 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      # --- Branch build (dev) ---
+      - name: Docker meta (branch tags)
+        id: meta_branch
+        if: startsWith(github.ref, 'refs/heads/')
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.img.outputs.image }}
+          tags: |
+            type=raw,value=dev
+            type=sha,format=short,prefix=dev-
+            type=sha,format=short,prefix=sha-
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=dev
+
+      - name: Build and push (branch)
+        if: startsWith(github.ref, 'refs/heads/')
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta_branch.outputs.tags }}
+          labels: ${{ steps.meta_branch.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Release build (tag vX.Y.Z) ---
+      - name: Docker meta (release tags)
+        id: meta_tag
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.img.outputs.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+            type=sha,format=short,prefix=sha-
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+
+      - name: Build and push (tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta_tag.outputs.tags }}
+          labels: ${{ steps.meta_tag.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
