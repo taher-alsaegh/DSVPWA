@@ -40,6 +40,13 @@ jobs:
 
       - name: Run black check
         run: black --check .
+      
+      - name: Who am I
+        run: |
+          echo "actor=${{ github.actor }}"
+          echo "repo=${{ github.repository }}"
+          echo "ref=${{ github.ref }}"
+
 
   build-and-push:
     runs-on: ubuntu-latest
