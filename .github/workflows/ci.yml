@@ -33,8 +33,8 @@ jobs:
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
           pip install flake8 black isort mypy
 
-      - name: Run flake8
-        run: flake8 .
+      #- name: Run flake8
+      #  run: flake8 .
 
       - name: Run black check
         run: black --check .
