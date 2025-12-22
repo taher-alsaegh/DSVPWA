@@ -75,7 +75,6 @@ jobs:
           tags: |
             type=raw,value=dev
             type=sha,format=short,prefix=dev-
-            type=sha,format=short,prefix=sha-
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
