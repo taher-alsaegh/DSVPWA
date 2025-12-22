@@ -11,7 +11,7 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: ghcr.io 
 
 jobs:
   lint-and-typecheck:
