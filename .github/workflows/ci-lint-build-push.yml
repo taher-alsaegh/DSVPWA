@@ -65,33 +65,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # # --- Branch build (dev) ---
-      # - name: Docker meta (branch tags)
-      #   id: meta_branch
-      #   if: startsWith(github.ref, 'refs/heads/')
-      #   uses: docker/metadata-action@v5
-      #   with:
-      #     images: ${{ steps.img.outputs.image }}
-      #     tags: |
-      #       type=raw,value=dev
-      #       type=sha,format=short,prefix=dev-
-      #       type=sha,format=short,prefix=sha-
-      #     labels: |
-      #       org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-      #       org.opencontainers.image.revision=${{ github.sha }}
-      #       org.opencontainers.image.version=dev
+      # --- Branch build (dev) ---
+      - name: Docker meta (branch tags)
+        id: meta_branch
+        if: startsWith(github.ref, 'refs/heads/')
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.img.outputs.image }}
+          tags: |
+            type=raw,value=dev
+            type=sha,format=short,prefix=dev-
+            type=sha,format=short,prefix=sha-
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=dev
 
-      # - name: Build and push (branch)
-      #   if: startsWith(github.ref, 'refs/heads/')
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     context: .
-      #     file: ./Dockerfile
-      #     push: true
-      #     tags: ${{ steps.meta_branch.outputs.tags }}
-      #     labels: ${{ steps.meta_branch.outputs.labels }}
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
+      - name: Build and push (branch)
+        if: startsWith(github.ref, 'refs/heads/')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta_branch.outputs.tags }}
+          labels: ${{ steps.meta_branch.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # --- Release build (tag vX.Y.Z) ---
       - name: Docker meta (release tags)
