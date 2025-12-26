@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Compute image ref (dev-<shortsha>)
         id: vars
         shell: bash
@@ -31,6 +33,51 @@ jobs:
       - name: Pull image
         run: docker pull "${{ steps.vars.outputs.image_ref }}"
 
+      # -------------------------
+      # 1) Snyk FIRST (SCA)
+      # -------------------------
+      - name: Snyk container test (SARIF)
+        continue-on-error: true
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ steps.vars.outputs.image_ref }}
+          args: --sarif-file-output=snyk-image.sarif
+
+      - name: Fix Snyk SARIF (null security-severity)
+        run: |
+          python - <<'PY'
+          import json
+          p="snyk-image.sarif"
+          with open(p,"r",encoding="utf-8") as f:
+            sarif=json.load(f)
+
+          changed=0
+          for run in sarif.get("runs", []):
+            rules = run.get("tool", {}).get("driver", {}).get("rules", [])
+            for rule in rules:
+              props = rule.get("properties", {})
+              if "security-severity" in props and props["security-severity"] is None:
+                props["security-severity"] = 0.0
+                rule["properties"] = props
+                changed += 1
+
+          with open(p,"w",encoding="utf-8") as f:
+            json.dump(sarif,f,ensure_ascii=False)
+
+          print(f"Patched rules: {changed}")
+          PY
+
+      - name: Upload Snyk SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk-image.sarif
+          category: snyk-image
+
+      # -------------------------
+      # 2) Trivy SECOND (Image)
+      # -------------------------
       - name: Trivy image scan (SARIF)
         continue-on-error: true
         uses: aquasecurity/trivy-action@master
@@ -44,18 +91,3 @@ jobs:
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image
-
-      - name: Snyk container test (SARIF)
-        continue-on-error: true
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYKE_TOKEN}}
-        with:
-          image: ${{ steps.vars.outputs.image_ref }}
-          args: --sarif-file-output=snyk-image.sarif
-
-      - name: Upload Snyk SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: snyk-image.sarif
-          category: snyk-image
