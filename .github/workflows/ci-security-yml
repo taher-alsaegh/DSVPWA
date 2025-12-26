@@ -1,0 +1,60 @@
+name: image-security-scans
+
+on:
+  pull_request:
+  push:
+    branches: [ "dev" ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: read
+  security-events: write
+
+jobs:
+  scan-ghcr-image:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_REF: ghcr.io/taher-alsaegh/dsvpwa:latest
+
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: docker pull "${IMAGE_REF}"
+
+      # Trivy Image scan
+      - name: Trivy image scan (SARIF)
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_REF }}
+          format: sarif
+          output: trivy-image.sarif
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+      # Snyke SCA Scan
+      - name: Snyk container test (SARIF)
+        continue-on-error: true
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ env.IMAGE_REF }}
+          args: --sarif-file-output=snyk-image.sarif
+
+      - name: Upload Snyk SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk-image.sarif
+          category: snyk-image
