@@ -2,6 +2,11 @@ name: image-security-scans
 
 on:
   workflow_call:
+    inputs:
+      image_ref:
+        description: "Full image reference in GHCR (e.g. ghcr.io/owner/repo:tag)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,15 +18,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Compute image ref (dev-<shortsha>)
-        id: vars
-        shell: bash
-        run: |
-          REPO_LC="$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
-          SHORT_SHA="${GITHUB_SHA:0:7}"
-          echo "image_ref=ghcr.io/${REPO_LC}:dev-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+      - name: Checkout (for better SARIF attribution)
+        uses: actions/checkout@v4
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -31,7 +29,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull image
-        run: docker pull "${{ steps.vars.outputs.image_ref }}"
+        run: docker pull "${{ inputs.image_ref }}"
 
       # -------------------------
       # 1) Snyk FIRST (SCA)
@@ -42,15 +40,17 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ steps.vars.outputs.image_ref }}
+          image: ${{ inputs.image_ref }}
           args: --sarif-file-output=snyk-image.sarif
 
-      - name: Fix Snyk SARIF (null security-severity)
+      - name: Fix Snyk SARIF (null security-severity) -> write new file
         run: |
           python - <<'PY'
           import json
-          p="snyk-image.sarif"
-          with open(p,"r",encoding="utf-8") as f:
+          src="snyk-image.sarif"
+          dst="snyk-image.fixed.sarif"
+
+          with open(src,"r",encoding="utf-8") as f:
             sarif=json.load(f)
 
           changed=0
@@ -63,17 +63,17 @@ jobs:
                 rule["properties"] = props
                 changed += 1
 
-          with open(p,"w",encoding="utf-8") as f:
+          with open(dst,"w",encoding="utf-8") as f:
             json.dump(sarif,f,ensure_ascii=False)
 
-          print(f"Patched rules: {changed}")
+          print(f"Patched rules: {changed} -> wrote {dst}")
           PY
 
       - name: Upload Snyk SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: snyk-image.sarif
-          category: snyk-image
+          sarif_file: snyk-image.fixed.sarif
+          category: snyk-sca
 
       # -------------------------
       # 2) Trivy SECOND (Image)
@@ -82,7 +82,7 @@ jobs:
         continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.vars.outputs.image_ref }}
+          image-ref: ${{ inputs.image_ref }}
           format: sarif
           output: trivy-image.sarif
 
