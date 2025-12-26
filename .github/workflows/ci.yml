@@ -48,7 +48,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          command: test
+          command: code test
           # optional: args: --severity-threshold=high
 
   build_push_trivy:
