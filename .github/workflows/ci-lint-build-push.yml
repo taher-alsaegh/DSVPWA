@@ -120,4 +120,15 @@ jobs:
           tags: ${{ steps.meta_tag.outputs.tags }}
           labels: ${{ steps.meta_tag.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max$
+  
+  security-scans:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/dev'
+    uses: ./.github/workflows/ci-security.yml
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    secrets: inherit
+
