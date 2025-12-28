@@ -1,0 +1,64 @@
+name: Verify GitOps uses latest image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app repo (tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest semver tag (vX.Y.Z)
+        id: latest
+        run: |
+          git fetch --tags --force
+          TAG="$(git tag -l 'v*.*.*' --sort=-v:refname | head -n1)"
+          if [ -z "$TAG" ]; then
+            echo "No semver tags found."
+            exit 1
+          fi
+          echo "latest_ver=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Latest tag: $TAG"
+
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: taher-alsaegh/dsvpwa-gitops
+          ref: main
+          path: gitops
+
+      - name: Read image from GitOps deployment
+        id: gitops
+        run: |
+          FILE="gitops/k8s/deployment.yml"
+          IMG="$(grep -E '^\s*image:\s*' "$FILE" | head -n1 | awk '{print $2}')"
+          TAG="${IMG##*:}"
+          TAG="${TAG%%@*}"
+          echo "gitops_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "GitOps uses: $IMG"
+
+      - name: Compare
+        run: |
+          LATEST="${{ steps.latest.outputs.latest_ver }}"
+          GITOPS="${{ steps.gitops.outputs.gitops_tag }}"
+
+          if [ "$GITOPS" = "latest" ]; then
+            echo "GitOps uses :latest -> OK"
+            exit 0
+          fi
+
+          if [ "$GITOPS" != "$LATEST" ]; then
+            echo "FAIL: GitOps uses $GITOPS but latest is $LATEST"
+            exit 1
+          fi
+
+          echo "OK: GitOps uses latest version $GITOPS"
