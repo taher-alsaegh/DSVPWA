@@ -1,0 +1,57 @@
+name: Daily DAST (OWASP ZAP)
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # täglich 02:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}:latest
+      TARGET: http://127.0.0.1:65413
+
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: docker pull "${IMAGE}"
+
+      - name: Run app container
+        run: |
+          docker run -d --rm --name dsvpwa -p 65413:65413 "${IMAGE}" \
+            python dsvpwa.py --host 0.0.0.0 --port 65413
+          for i in {1..30}; do
+            curl -fsS "${TARGET}" >/dev/null && exit 0
+            sleep 2
+          done
+          docker logs dsvpwa || true
+          exit 1
+
+      - name: ZAP baseline scan
+        run: |
+          docker run --rm --network host -v ${{ github.workspace }}:/zap/wrk \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t "${TARGET}" -r zap.html -J zap.json
+
+      - name: Upload ZAP reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: |
+            zap.html
+            zap.json
+
+      - name: Stop app
+        if: always()
+        run: docker stop dsvpwa || true

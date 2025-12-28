@@ -1,0 +1,16 @@
+[project]
+name = "dsvpwa"
+version = "0.1.0"
+requires-python = ">=3.9,<4.0"
+dependencies = []
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+
+[tool.isort]
+profile = "black"
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]

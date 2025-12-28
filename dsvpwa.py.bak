@@ -21,19 +21,12 @@ def main():
         default="127.0.0.1",
         help="set the IP address to bind to (defaults to 127.0.0.1)",
     )
-
-    # --- ONLY CHANGE: robust PORT parsing for Kubernetes ---
-    raw_port = os.getenv("DSVPWA_PORT", "65413")
-    if isinstance(raw_port, str) and raw_port.startswith("tcp://"):
-        raw_port = raw_port.rsplit(":", 1)[-1]
-
     parser.add_argument(
         "--port",
         type=int,
-        default=int(raw_port),
+        default=os.getenv("DSVPWA_PORT", 65413),
         help="set the port number to bind to (defaults to 65413)",
     )
-
     parser.add_argument(
         "--risk",
         type=int,
