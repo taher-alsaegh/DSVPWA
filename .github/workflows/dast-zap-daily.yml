@@ -1,9 +1,12 @@
 name: Daily DAST (OWASP ZAP)
 
 on:
-  schedule:
-    - cron: "0 2 * * *"   # täglich 02:00 UTC
-  workflow_dispatch: {}
+  # schedule:
+  #   - cron: "0 2 * * *"   # täglich 02:00 UTC
+  # workflow_dispatch: {}
+  push:
+    branches: [dev]
+  workflow_dispatch: {}    
 
 permissions:
   contents: read
@@ -13,7 +16,7 @@ jobs:
   zap:
     runs-on: ubuntu-latest
     env:
-      IMAGE: ghcr.io/${{ github.repository }}:latest
+      IMAGE: ghcr.io/${{ github.repository_owner }}/dsvpwa:latest
       TARGET: http://127.0.0.1:65413
 
     steps:
