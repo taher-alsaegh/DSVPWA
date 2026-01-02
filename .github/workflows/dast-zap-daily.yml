@@ -16,7 +16,7 @@ jobs:
   zap:
     runs-on: ubuntu-latest
     env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/dsvpwa:dev
+      IMAGE: ghcr.io/${{ github.repository_owner }}/dsvpwa:latest
       TARGET: http://127.0.0.1:65413
 
     steps:
@@ -48,13 +48,15 @@ jobs:
           exit 1
 
       - name: ZAP baseline scan
-        continue-on-error: true
         run: |
-          docker run --rm --network host \
-            --user 0:0 \
+          set +e
+          docker run --rm --network host --user 0:0 \
             -v ${{ github.workspace }}:/zap/wrk \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py -t "${TARGET}" -r zap.html -J zap.json
+          ZAP_RC=$?
+          echo "ZAP exit code: $ZAP_RC"
+          exit 0
 
       - name: Upload ZAP reports
         if: always()
