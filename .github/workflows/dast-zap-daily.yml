@@ -1,11 +1,8 @@
 name: Daily DAST (OWASP ZAP)
 
 on:
-  push:
-    branches: [dev]
-  # schedule:
-  #   - cron: "0 2 * * *"   # täglich 02:00 UTC
-  # workflow_dispatch: {}
+  schedule:
+    - cron: "0 8 * * *"   # UTC
   workflow_dispatch: {}
 
 permissions:
@@ -47,17 +44,6 @@ jobs:
           docker logs dsvpwa || true
           exit 1
 
-      # - name: ZAP baseline scan
-      #   run: |
-      #     set +e
-      #     docker run --rm --network host --user 0:0 \
-      #       -v ${{ github.workspace }}:/zap/wrk \
-      #       ghcr.io/zaproxy/zaproxy:stable \
-      #       zap-baseline.py -t "${TARGET}" -r zap.html -J zap.json
-      #     ZAP_RC=$?
-      #     echo "ZAP exit code: $ZAP_RC"
-      #     exit 0
-
       - name: ZAP full scan (active)
         run: |
           set +e
@@ -68,15 +54,6 @@ jobs:
           echo "ZAP exit code: $?"
           exit 0
 
-      # - name: Upload ZAP reports
-      #   if: always()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: zap-report
-      #     path: |
-      #       zap.html
-      #       zap.json
-      
       - name: List reports
         if: always()
         run: ls -la
