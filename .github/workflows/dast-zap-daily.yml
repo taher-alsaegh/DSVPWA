@@ -1,12 +1,12 @@
 name: Daily DAST (OWASP ZAP)
 
 on:
+  push:
+    branches: [dev]
   # schedule:
   #   - cron: "0 2 * * *"   # täglich 02:00 UTC
   # workflow_dispatch: {}
-  push:
-    branches: [dev]
-  workflow_dispatch: {}    
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
   zap:
     runs-on: ubuntu-latest
     env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/dsvpwa:latest
+      IMAGE: ghcr.io/${{ github.repository_owner }}/dsvpwa:dev
       TARGET: http://127.0.0.1:65413
 
     steps:
@@ -32,12 +32,18 @@ jobs:
 
       - name: Run app container
         run: |
-          docker run -d --rm --name dsvpwa -p 65413:65413 "${IMAGE}" \
-            python dsvpwa.py --host 0.0.0.0 --port 65413
+          docker rm -f dsvpwa 2>/dev/null || true
+          docker run -d --rm --name dsvpwa \
+            -p 65413:65413 \
+            -e DSVPWA_PORT=65413 \
+            "${IMAGE}"
+
           for i in {1..30}; do
             curl -fsS "${TARGET}" >/dev/null && exit 0
             sleep 2
           done
+
+          echo "App did not become ready. Logs:"
           docker logs dsvpwa || true
           exit 1
 
