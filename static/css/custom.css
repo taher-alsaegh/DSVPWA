@@ -27,7 +27,8 @@ body {
 
 body.login {
   padding-top: inherit !important;
-  background-color: #f5f5f5;
+  background-color: #0e32e3;
+  /* background-color: #f5f5f5; */
 }
 
 #alert.alert-empty {
