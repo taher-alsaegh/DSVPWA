@@ -47,17 +47,27 @@ jobs:
           docker logs dsvpwa || true
           exit 1
 
-      - name: ZAP baseline scan
+      # - name: ZAP baseline scan
+      #   run: |
+      #     set +e
+      #     docker run --rm --network host --user 0:0 \
+      #       -v ${{ github.workspace }}:/zap/wrk \
+      #       ghcr.io/zaproxy/zaproxy:stable \
+      #       zap-baseline.py -t "${TARGET}" -r zap.html -J zap.json
+      #     ZAP_RC=$?
+      #     echo "ZAP exit code: $ZAP_RC"
+      #     exit 0
+
+      - name: ZAP full scan (active)
         run: |
           set +e
           docker run --rm --network host --user 0:0 \
             -v ${{ github.workspace }}:/zap/wrk \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t "${TARGET}" -r zap.html -J zap.json
-          ZAP_RC=$?
-          echo "ZAP exit code: $ZAP_RC"
+            zap-full-scan.py -t "${TARGET}" -r zap-full.html -J zap-full.json
+          echo "ZAP exit code: $?"
           exit 0
-
+          
       - name: Upload ZAP reports
         if: always()
         uses: actions/upload-artifact@v4
