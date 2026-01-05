@@ -1,6 +1,8 @@
 name: Daily DAST (OWASP ZAP)
 
 on:
+  push:
+    branches: [dev]
   schedule:
     - cron: "0 8 * * *"   # UTC
   workflow_dispatch: {}
