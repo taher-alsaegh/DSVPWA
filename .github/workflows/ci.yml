@@ -1,4 +1,4 @@
-name: SAST,SCA Build and Push and SCAN
+name: SAST,SCA Build & Push and SCAN via Trivy
 
 on:
   push:

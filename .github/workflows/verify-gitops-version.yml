@@ -1,4 +1,4 @@
-name: Auto-bump GitOps image version (PR)
+name: Auto-update GitOps image version via PR
 
 on:
   push:
@@ -71,10 +71,10 @@ jobs:
         with:
           token: ${{ secrets.GITOPS_TOKEN }}
           path: gitops
-          commit-message: "chore: bump dsvpwa image to ${{ steps.latest.outputs.ver }}"
-          branch: "chore/bump-dsvpwa-${{ steps.latest.outputs.ver }}"
+          commit-message: "gitops: update dsvpwa image to ${{ steps.latest.outputs.ver }}"
+          branch: "update-dsvpwa-${{ steps.latest.outputs.ver }}"
           delete-branch: true
-          title: "chore(gitops): bump dsvpwa image to ${{ steps.latest.outputs.ver }}"
+          title: "gitops: update dsvpwa image to ${{ steps.latest.outputs.ver }}"
           body: |
             Auto-generated update after merge to main in app repo.
             - sets image tag to `${{ steps.latest.outputs.ver }}`
