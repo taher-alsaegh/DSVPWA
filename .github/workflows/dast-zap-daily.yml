@@ -4,7 +4,7 @@ on:
   push:
     branches: [dev]
   schedule:
-    - cron: "0 8 * * *"   # UTC
+    - cron: "0 4 * * *"   # UTC
   workflow_dispatch: {}
 
 permissions:
